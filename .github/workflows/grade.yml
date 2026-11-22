@@ -1,0 +1,25 @@
+name: grade
+on: [push, workflow_dispatch]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.x'}
+      - name: Run journal check (progress meter, not pass/fail)
+        id: selfcheck_journal
+        if: hashFiles('self_check.py') != ''
+        run: |
+          python3 self_check.py | tee "$HOME/check_output.txt"
+          echo "score=$(tail -1 "$HOME/check_output.txt")" >> $GITHUB_OUTPUT
+        continue-on-error: true
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f "$HOME/check_output.txt" ]; then
+            echo "### Journal check — $(tail -1 "$HOME/check_output.txt")" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Journal check — skipped (self_check.py not present)" >> $GITHUB_STEP_SUMMARY
+          fi
